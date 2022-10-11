@@ -45,6 +45,7 @@ add_executable(nori
   include/nori/warp.h
 
   # Source code files
+  src/averagevisibility.cpp
   src/bitmap.cpp
   src/block.cpp
   src/bvh.cpp
@@ -57,6 +58,7 @@ add_executable(nori
   src/independent.cpp
   src/main.cpp
   src/mesh.cpp
+  src/normals.cpp
   src/obj.cpp
   src/object.cpp
   src/parser.cpp
