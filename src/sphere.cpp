@@ -20,8 +20,15 @@
 #include <nori/bsdf.h>
 #include <nori/emitter.h>
 #include <nori/warp.h>
+#include <nori/common.h>
 
 NORI_NAMESPACE_BEGIN
+
+bool bigger(float a, float b) {  // returns true if a > b
+    if( (a - b) > Epsilon)
+        return true;
+    return false;
+}
 
 class Sphere : public Shape {
 public:
@@ -38,14 +45,47 @@ public:
     virtual Point3f getCentroid(uint32_t index) const override { return m_position; }
 
     virtual bool rayIntersect(uint32_t index, const Ray3f &ray, float &u, float &v, float &t) const override {
+        Vector3f om = Vector3f(ray.o - m_position);
+        auto A = ray.d.dot(ray.d);
+        auto B = 2 * ray.d.dot(om);
+        auto C = om.dot(om) - m_radius * m_radius;
 
-	/* to be implemented */
-        return false;
+        auto D = B * B - 4 * A * C;
+        if(D < Epsilon) { // negative
+            return false;
+        }
 
+        auto t1 = (-B - sqrt(D)) / (2.0 * A);
+        auto t2 = (-B - sqrt(D)) / (2.0 * A);
+
+        bool ok1 = false, ok2 = false;
+
+        if(bigger(t1, ray.mint) && bigger(ray.maxt, t1))
+            t = t1, ok1 = true;
+        
+        if(bigger(t1, ray.mint) && bigger(ray.maxt, t1) && bigger(t, t2))
+            t = t2, ok2 = true;    
+
+        if(ok1 && ok2 && bigger(t2, t1))
+            t = t1;
+        else
+            t = t2;
+
+        return (ok1 | ok2);
     }
 
     virtual void setHitInformation(uint32_t index, const Ray3f &ray, Intersection & its) const override {
         /* to be implemented */
+        float u = 0, v = 0, t = 0;
+        this->rayIntersect(index, ray, u, v, t);
+        Point3f intersectionPoint = ray.o + ray.d * t;
+        Vector3f sctip = intersectionPoint - m_position;
+        Point2f uv = sphericalCoordinates(sctip);
+        
+        its.p = intersectionPoint;
+        its.uv = Point2f(uv.y(), uv.x());
+        its.shFrame = Frame(sctip.normalized());
+        its.geoFrame = Frame(sctip.normalized());
     }
 
     virtual void sampleSurface(ShapeQueryRecord & sRec, const Point2f & sample) const override {
