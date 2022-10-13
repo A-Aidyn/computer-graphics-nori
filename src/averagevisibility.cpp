@@ -7,7 +7,6 @@ NORI_NAMESPACE_BEGIN
 class AverageVisibility : public Integrator {
 public:
     AverageVisibility(const PropertyList &props) {
-        /* No parameters this time */
         rayLength = props.getFloat("length");
         std::cout << "Parameter value was : " << rayLength << std::endl;
     }
@@ -43,7 +42,6 @@ public:
             "]",
             rayLength
         );
-        return "AverageVisibility[]";
     }
 protected:
     float rayLength;

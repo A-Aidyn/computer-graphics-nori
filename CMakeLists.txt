@@ -54,6 +54,7 @@ add_executable(nori
   src/consttexture.cpp
   src/checkerboard.cpp
   src/diffuse.cpp
+  src/direct.cpp
   src/gui.cpp
   src/independent.cpp
   src/main.cpp
@@ -63,6 +64,7 @@ add_executable(nori
   src/object.cpp
   src/parser.cpp
   src/perspective.cpp
+  src/pointlight.cpp
   src/proplist.cpp
   src/render.cpp
   src/rfilter.cpp
