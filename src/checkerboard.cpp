@@ -30,7 +30,31 @@ public:
 
     virtual T eval(const Point2f & uv) override {
         /* to be implemented */
-	    return m_value1;
+        
+	    Point2f nuv = Point2f(uv.x() - m_delta.x() * m_scale.x(), uv.y() - m_delta.y() * m_scale.y()); //.cwiseAbs();
+        // Point2f nuv = (uv - m_delta); //.cwiseAbs();
+        // Point2f nuv ;
+
+
+        int add_x = 0, add_y = 0;
+        if(nuv.x() < 0)
+            add_x = int(fabs(nuv.x()) / m_scale.x()) + 1;
+        if(nuv.y() < 0)
+            add_y = int(fabs(nuv.y()) / m_scale.y()) + 1;
+
+        nuv = Point2f(nuv.x() + std::max(add_x, add_y) * m_scale.x(), nuv.y() + std::max(add_x, add_y) * m_scale.y());
+        // while(nuv.x() < 0 || nuv.y() < 0) {
+        //     nuv = Point2f(nuv.x() + m_scale.x(), nuv.y() + m_scale.y());
+        // }
+
+
+        int block_x = nuv.x() / m_scale.x();
+        int block_y = nuv.y() / m_scale.y();
+
+        if( (block_x + block_y) & 1)
+            return m_value1;
+        else   
+            return m_value2;
     }
 
 protected:

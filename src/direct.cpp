@@ -46,9 +46,20 @@ public:
             Vector3f wo = (ray.o - lRec.ref).normalized();
             // Vector3f wo = (ray.o - lRec.ref);
             BSDFQueryRecord bRec(its.toLocal(lRec.wi), its.toLocal(wo), ESolidAngle);
-            // Point2f uv = sphericalCoordinates(lRec.wi);
-            // bRec.uv = uv;
-            // bRec.p = its.p;
+            
+            // bRec.uv = Point2f(its.uv.x() / M_PI, its.uv.y() / (2.0 * M_PI));
+            // bRec.uv = Point2f(its.uv.y() / (2.0 * M_PI), its.uv.x() / M_PI);
+            // std::cout << 1 / 0;
+            // assert(0);
+            // assert(its.uv.x() >= 0 && its.uv.x() <= 1);
+            // assert(its.uv.y() >= 0 && its.uv.y() <= 1);
+            bRec.uv = its.uv;
+            // bRec.uv = Point2f(its.uv.y() / (2.0 * M_PI), its.uv.x() / M_PI);
+            // Point2f uv = sphericalCoordinates(its.shFrame.n);
+            // bRec.uv = Point2f(uv.y() / (2.0 * M_PI), uv.x() / M_PI);
+            // bRec.uv = Point2f(uv.x() / M_PI, uv.y() / (2.0 * M_PI));
+
+            bRec.p = its.p;
             Color3f bsdfResult = bsdf -> eval(bRec);
 
             // std::cout << "bsdfResult: " << bsdfResult.toString() << endl;

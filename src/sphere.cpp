@@ -80,10 +80,12 @@ public:
         this->rayIntersect(index, ray, u, v, t);
         Point3f intersectionPoint = ray.o + ray.d * t;
         Vector3f sctip = intersectionPoint - m_position;
-        Point2f uv = sphericalCoordinates(sctip);
+        Point2f uv = sphericalCoordinates(sctip.normalized());
         
         its.p = intersectionPoint;
-        its.uv = Point2f(uv.y(), uv.x());
+        // its.uv = Point2f(uv.x() / M_PI, uv.y() / (2.0 * M_PI));
+        // its.uv = uv;
+        its.uv = Point2f(uv.y() / (2.0 * M_PI), uv.x() / M_PI);
         its.shFrame = Frame(sctip.normalized());
         its.geoFrame = Frame(sctip.normalized());
     }
