@@ -17,6 +17,7 @@
 */
 
 #include <nori/bsdf.h>
+#include <nori/common.h>
 #include <nori/frame.h>
 #include <nori/warp.h>
 
@@ -82,17 +83,45 @@ public:
 
     /// Evaluate the BRDF for the given pair of directions
     virtual Color3f eval(const BSDFQueryRecord &bRec) const override {
-    	throw NoriException("MicrofacetBRDF::eval(): not implemented!");
+    	Color3f result(0.0);
+        if (bRec.measure != ESolidAngle || Frame::cosTheta(bRec.wi) <= 0 || Frame::cosTheta(bRec.wo) <= 0)
+            return result;
+        Vector3f w_h = (bRec.wi + bRec.wo).normalized();
+        float D = evalBeckmann(w_h);
+        float G = smithBeckmannG1(bRec.wi, w_h) * smithBeckmannG1(bRec.wo, w_h);
+        float F = fresnel(w_h.dot(bRec.wi), m_extIOR, m_intIOR);
+        result = (m_kd * INV_PI) + m_ks * (D * F * G) / (4.0 * Frame::cosTheta(bRec.wi) * Frame::cosTheta(bRec.wo));
+        return result;
     }
 
     /// Evaluate the sampling density of \ref sample() wrt. solid angles
     virtual float pdf(const BSDFQueryRecord &bRec) const override {
-    	throw NoriException("MicrofacetBRDF::pdf(): not implemented!");
+        if (bRec.measure != ESolidAngle || Frame::cosTheta(bRec.wi) <= 0 || Frame::cosTheta(bRec.wo) <= 0)
+            return 0.0f;
+        Vector3f w_h = (bRec.wi + bRec.wo).normalized();
+        float J_h = 1.0 / (4.0 * w_h.dot(bRec.wo));
+        return m_ks * evalBeckmann(w_h) * Frame::cosTheta(w_h) * J_h + (1.0 - m_ks) * INV_PI * Frame::cosTheta(bRec.wo);
     }
 
     /// Sample the BRDF
     virtual Color3f sample(BSDFQueryRecord &bRec, const Point2f &_sample) const override {
-    	throw NoriException("MicrofacetBRDF::sample(): not implemented!");
+        if (Frame::cosTheta(bRec.wi) <= 0)
+            return Color3f(0.0f);
+        // need to generate bRec.wo
+        bRec.measure = ESolidAngle;
+        bRec.eta = 1.0f;
+        if(_sample.x() < m_ks) { // beckmann
+            Point2f newSample(_sample.x() / m_ks, _sample.y());
+            Vector3f w_h = Warp::squareToBeckmann(newSample, m_alpha).normalized();
+            // https://www.pbr-book.org/3ed-2018/Reflection_Models/Specular_Reflection_and_Transmission#Reflect
+            bRec.wo = (-bRec.wi + 2.0 * bRec.wi.dot(w_h) * w_h).normalized(); 
+        } else {  // cosine-weighted
+            Point2f newSample( (_sample.x() / m_ks - 1.0) / (1.0 / m_ks - 1.0), _sample.y());
+            bRec.wo = Warp::squareToCosineHemisphere(newSample);
+        }
+        if(pdf(bRec) <= 0.0f)
+            return Color3f(0.0f);
+        return (eval(bRec) / pdf(bRec)) * Frame::cosTheta(bRec.wo);    
     }
 
     virtual std::string toString() const override {

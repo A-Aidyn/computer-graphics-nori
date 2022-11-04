@@ -29,10 +29,10 @@ NORI_NAMESPACE_BEGIN
  */
 struct BSDFQueryRecord {
     /// Incident direction (in the local frame)
-    Vector3f wi;
+    Vector3f wi;  // w
 
     /// Outgoing direction (in the local frame)
-    Vector3f wo;
+    Vector3f wo;  // w_sampled
 
     /// Relative refractive index in the sampled direction
     float eta;
