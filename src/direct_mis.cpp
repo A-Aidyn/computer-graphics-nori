@@ -105,6 +105,7 @@ public:
                                 EmitterQueryRecord lRec2 (its.p, new_its.p, new_its.shFrame.n);
                                 Color3f lightResult2 = light -> eval(lRec2);
                                 mats_value = (lightResult2 * bsdfResult2);
+                                std::swap(bRec2.wi, bRec2.wo);
                                 mats_pdf2 = bsdf -> pdf(bRec2);
                                 ems_pdf2 = light -> pdf(lRec2);
 
