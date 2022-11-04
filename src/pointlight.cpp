@@ -31,7 +31,7 @@ public:
 
     virtual Color3f sample(EmitterQueryRecord & lRec, const Point2f & sample) const override {
         lRec.wi = (position - lRec.ref).normalized();
-        lRec.pdf = 1.0;
+        lRec.pdf = 0.0;
         lRec.p = position;
         return (this -> eval(lRec));
     }
@@ -43,7 +43,7 @@ public:
     }
 
     virtual float pdf(const EmitterQueryRecord &lRec) const override {
-        return 1.0;
+        return 0.0;
     }
 
     // virtual Color3f samplePhoton(Ray3f &ray, const Point2f &sample1, const Point2f &sample2) const override {

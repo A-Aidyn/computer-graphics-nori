@@ -51,7 +51,7 @@ public:
         auto C = om.dot(om) - m_radius * m_radius;
 
         auto D = B * B - 4 * A * C;
-        if(D < Epsilon) { // negative
+        if(D < 0.0) { // negative
             return false;
         }
 
@@ -76,9 +76,9 @@ public:
 
     virtual void setHitInformation(uint32_t index, const Ray3f &ray, Intersection & its) const override {
         /* to be implemented */
-        float u = 0, v = 0, t = 0;
-        this->rayIntersect(index, ray, u, v, t);
-        Point3f intersectionPoint = ray.o + ray.d * t;
+        // float u = 0, v = 0, t = 0;
+        // this->rayIntersect(index, ray, u, v, t);
+        Point3f intersectionPoint = ray.o + ray.d * ray.maxt;
         Vector3f sctip = intersectionPoint - m_position;
         Point2f uv = sphericalCoordinates(sctip.normalized());
         
