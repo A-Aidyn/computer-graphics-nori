@@ -57,16 +57,19 @@ public:
         lRec.n = sRec.n;
         lRec.pdf = sRec.pdf;
         lRec.wi = (sRec.p - lRec.ref).normalized();
-        return eval(lRec) / pdf(lRec);
+        
+        if(lRec.n.dot(-lRec.wi) > 0.0) {
+            return eval(lRec) / pdf(lRec);
+        }
+        return Color3f(0.0);        
     }
 
     virtual float pdf(const EmitterQueryRecord &lRec) const override {
         if(!m_shape)
             throw NoriException("There is no shape attached to this Area light!");
-
-        ShapeQueryRecord sRec(lRec.ref);
-        float pdf = m_shape -> pdfSurface(sRec);
-        if(pdf > 0.0) {
+        if(lRec.n.dot(-lRec.wi) > 0.0) {
+            ShapeQueryRecord sRec(lRec.ref);
+            float pdf = m_shape -> pdfSurface(sRec);
             float solid_angle_pdf = pdf * (lRec.p - lRec.ref).dot((lRec.p - lRec.ref)) / fabs(lRec.n.dot(-lRec.wi));
             return solid_angle_pdf;
         }
