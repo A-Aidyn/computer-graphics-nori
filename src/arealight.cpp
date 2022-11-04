@@ -41,8 +41,7 @@ public:
             throw NoriException("There is no shape attached to this Area light!");
         float sqrdst = (lRec.p - lRec.ref).dot(lRec.p - lRec.ref);
         if(lRec.n.dot(-lRec.wi) > 0.0) {
-            float solid_angle_pdf = lRec.pdf * (lRec.p - lRec.ref).dot((lRec.p - lRec.ref)) / fabs(lRec.n.dot(-lRec.wi));
-            return m_radiance / solid_angle_pdf;
+            return m_radiance;
         }
         return Color3f(0.0);
     }
@@ -58,7 +57,7 @@ public:
         lRec.n = sRec.n;
         lRec.pdf = sRec.pdf;
         lRec.wi = (sRec.p - lRec.ref).normalized();
-        return eval(lRec);
+        return eval(lRec) / pdf(lRec);
     }
 
     virtual float pdf(const EmitterQueryRecord &lRec) const override {
@@ -67,9 +66,11 @@ public:
 
         ShapeQueryRecord sRec(lRec.ref);
         float pdf = m_shape -> pdfSurface(sRec);
-        // if(pdf == 0.0) return pdf;
-        float solid_angle_pdf = pdf * (lRec.p - lRec.ref).dot((lRec.p - lRec.ref)) / fabs(lRec.n.dot(-lRec.wi));
-        return solid_angle_pdf;
+        if(pdf > 0.0) {
+            float solid_angle_pdf = pdf * (lRec.p - lRec.ref).dot((lRec.p - lRec.ref)) / fabs(lRec.n.dot(-lRec.wi));
+            return solid_angle_pdf;
+        }
+        return 0.0;
     }
 
 
