@@ -8,4 +8,6 @@ CMakeFiles
 Makefile
 *.cmake
 .idea
+*.exr
+*.png
 
