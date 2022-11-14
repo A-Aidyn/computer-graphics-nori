@@ -10,4 +10,5 @@ Makefile
 .idea
 *.exr
 *.png
+/.vscode
 
