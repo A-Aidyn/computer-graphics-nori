@@ -45,6 +45,38 @@ public:
     virtual Point3f getCentroid(uint32_t index) const override { return m_position; }
 
     virtual bool rayIntersect(uint32_t index, const Ray3f &ray, float &u, float &v, float &t) const override {
+        Vector3f ray_to_sphere = (m_position - ray.o);
+        float tc = ray_to_sphere.dot(ray.d);
+
+        if(tc < 0)
+            return false;
+        
+        float d = sqrt(ray_to_sphere.dot(ray_to_sphere) - tc * tc);
+        if(d > m_radius) return false;
+        float t1c = sqrt(m_radius * m_radius - d * d);
+        
+        float t1 = tc - t1c;
+        float t2 = tc + t1c;
+
+        bool ok1 = false;
+        bool ok2 = false;
+
+        if(ray.mint < t1 && t1 < ray.maxt)
+            ok1 = true;
+        if(ray.mint < t2 && t2 < ray.maxt)
+            ok2 = true;
+
+        if(ok1 && ok2)
+            t = std::min(t1, t2);
+        else if(ok1)
+            t = t1;
+        else if(ok2)
+            t = t2;
+        else 
+            return false;
+        
+        return true;        
+        /*
         Vector3f om = Vector3f(ray.o - m_position);
         auto A = ray.d.dot(ray.d);
         auto B = 2 * ray.d.dot(om);
@@ -55,23 +87,28 @@ public:
             return false;
         }
 
-        auto t1 = (-B - sqrt(D)) / (2.0 * A);
+        auto t1 = (-B + sqrt(D)) / (2.0 * A);
         auto t2 = (-B - sqrt(D)) / (2.0 * A);
 
         bool ok1 = false, ok2 = false;
 
         if(bigger(t1, ray.mint) && bigger(ray.maxt, t1))
-            t = t1, ok1 = true;
+            ok1 = true;
         
-        if(bigger(t1, ray.mint) && bigger(ray.maxt, t1) && bigger(t, t2))
-            t = t2, ok2 = true;    
+        if(bigger(t2, ray.mint) && bigger(ray.maxt, t2))
+            ok2 = true;    
 
-        if(ok1 && ok2 && bigger(t2, t1))
+        if(ok1 && ok2)
+            t = std::min(t1, t2);
+        else if(ok1)
             t = t1;
-        else
+        else if(ok2)
             t = t2;
 
-        return (ok1 | ok2);
+        if(ok1 && ok2)
+            cout << "t1: " << t1 << " t2: " << t2 << endl;
+
+        return (ok1 | ok2); */
     }
 
     virtual void setHitInformation(uint32_t index, const Ray3f &ray, Intersection & its) const override {
@@ -81,7 +118,6 @@ public:
         Point3f intersectionPoint = ray.o + ray.d * ray.maxt;
         Vector3f sctip = intersectionPoint - m_position;
         Point2f uv = sphericalCoordinates(sctip.normalized());
-        
         its.p = intersectionPoint;
         // its.uv = Point2f(uv.x() / M_PI, uv.y() / (2.0 * M_PI));
         // its.uv = uv;

@@ -43,7 +43,54 @@ public:
     }
 
     virtual Color3f sample(BSDFQueryRecord &bRec, const Point2f &sample) const override {
-        throw NoriException("Unimplemented!");
+        float F = fresnel(Frame::cosTheta(bRec.wi), m_extIOR, m_intIOR);
+        bRec.measure = EDiscrete;
+
+        // if(Frame::cosTheta(bRec.wi) < 0) {
+        //     cout << "F: " << F << " sample.x(): " << sample.x() << " cosTheta: " << Frame::cosTheta(bRec.wi) << endl;
+        // }
+        
+        if(sample.x() < F) { // reflection
+            bRec.wo = Vector3f(
+                -bRec.wi.x(),
+                -bRec.wi.y(),
+                 bRec.wi.z()
+            );
+            // return F * Color3f(1.0f);
+        } else { // refraction
+            Vector3f n(0, 0, 1);
+            if(Frame::cosTheta(bRec.wi) < 0) {
+                // std::cout << "entered2?";
+                n = -n;
+            }
+
+            bool entering = Frame::cosTheta(bRec.wi) > 0;
+
+            float fromIOR = (entering) ? m_extIOR : m_intIOR; 
+            float toIOR = (entering) ? m_intIOR : m_extIOR;            
+
+            float fromIOR2 = fromIOR * fromIOR;
+            float toIOR2 = toIOR * toIOR;
+
+            float cosThetaI = n.dot(bRec.wi);
+            float sin2I = std::max(0.0f, 1.0f - cosThetaI * cosThetaI); // sin^2(theta)_incident
+            float sin2T = sin2I * fromIOR2 / toIOR2; // sin^2(theta)_transmitted
+
+            if(sin2T >= 1.0) return Color3f(0.0f);
+
+            float cosT = sqrt(1.0 - sin2T);
+
+            float fracIOR = fromIOR / toIOR; 
+            bRec.wo = fracIOR * -bRec.wi + (fracIOR * cosThetaI - cosT) * n;
+            // bRec.wo = - fracIOR * (bRec.wi - Frame::cosTheta(bRec.wi) * n) - n * sqrt(1.0 - fracIOR * fracIOR * (1.0 - Frame::cosTheta(bRec.wi) * Frame::cosTheta(bRec.wi)));
+            // bRec.wo = bRec.wo.normalized();
+            
+            // cout << "cosTheta(bRec.wo): " << Frame::cosTheta(bRec.wo) << endl;
+
+            
+            // return (1.0 - F) * Color3f(1.0f);
+        }
+        return Color3f(1.0f);
     }
 
     virtual std::string toString() const override {
