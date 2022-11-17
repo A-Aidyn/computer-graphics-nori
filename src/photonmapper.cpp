@@ -34,6 +34,7 @@ public:
         /* Lookup parameters */
         m_photonCount  = props.getInteger("photonCount", 1000000);
         m_photonRadius = props.getFloat("photonRadius", 0.0f /* Default: automatic */);
+        // m_emittedPhoton = 0;
     }
 
     virtual void preprocess(const Scene *scene) override {
@@ -50,9 +51,7 @@ public:
 
 		/* Estimate a default photon radius */
 		if (m_photonRadius == 0)
-			m_photonRadius = scene->getBoundingBox().getExtents().norm() / 500.0f;
-
-	
+			m_photonRadius = scene->getBoundingBox().getExtents().norm() / 500.0f;	
 
 		/* How to add a photon?
 		 * m_photonMap->push_back(Photon(
@@ -63,6 +62,88 @@ public:
 		 */
 
 		// put your code to trace photons here
+        auto lights = scene -> getLights();
+        int nLights = lights.size();        
+        std::vector<std::pair<std::pair<Point3f, Vector3f>, Color3f> > tmp[nLights];
+        int emitted[nLights];
+        memset(emitted, 0, sizeof emitted);
+
+        int deposited = 0;
+
+        // cout << "n"
+
+        while(deposited < m_photonCount) {
+            int selectedLight = int((sampler -> next1D()) * nLights) % nLights;
+            auto light = lights[selectedLight];
+            Ray3f ray;
+            light -> samplePhoton(ray, sampler -> next2D(), sampler -> next2D());
+            Color3f throughput = 1.0f;
+            emitted[selectedLight] ++;
+            // m_emittedPhoton ++;
+            // cout << "deposited: " << deposited << endl;
+            while(deposited < m_photonCount) {
+                Intersection its;
+                if(!scene->rayIntersect(ray, its))
+                    break;
+                if(!its.mesh)
+                    break;
+                Vector3f w = (ray.o - its.p).normalized();
+                BSDF *bsdf = (BSDF*)(its.mesh -> getBSDF());
+                if(bsdf && bsdf -> isDiffuse()) {
+                    tmp[selectedLight].push_back(std::make_pair(std::make_pair(its.p, w), throughput));
+                    deposited ++;
+                    // m_photonMap -> push_back(Photon(
+                    //     its.p,
+                    //     w,
+                    //     power * throughput
+                    // ));
+                }
+                if(bsdf) {
+                    Vector3f w_local = its.toLocal(w);
+                    BSDFQueryRecord bRec(w_local);  
+                    bRec.uv = its.uv;
+                    bRec.p = its.p;
+                    Point2f bsdfSample = sampler -> next2D();
+                    Color3f bsdfResult = bsdf -> sample(bRec, bsdfSample);
+                    // bsdf -> sample(bRec, bsdfSample);
+
+                    // if(bsdfSampleResult.maxCoeff() == 0.0f)
+                        // break;
+                    Vector3f w_sampled = its.toWorld(bRec.wo).normalized(); // sampled direction 
+                    
+                    // BSDFQueryRecord bRec2(its.toLocal(w_sampled), its.toLocal(w), ESolidAngle);
+                    // bRec2.uv = its.uv;
+                    // bRec2.p = its.p;                    
+                    // if((bsdf -> pdf(bRec2)) > 0.0f) {
+                    //     bsdfResult = ((bsdf -> eval(bRec2)) / (bsdf -> pdf(bRec2))) * Frame::cosTheta(bRec2.wo);
+                    // }
+                    
+                    Ray3f ray_w_sampled(its.p, w_sampled);
+                    float successProb = std::min(throughput.maxCoeff(), 0.99f);                                    
+                    if((sampler -> next1D()) <= successProb) {
+                        throughput /= successProb;
+                        throughput *= bsdfResult;                    
+                        ray = ray_w_sampled;
+                    } else 
+                        break;
+                } else {
+                    break;
+                }
+            }
+        }
+        // cout << "first part finished!" << endl;
+        for(int i = 0; i < nLights; i ++) {
+            auto light = lights[i];
+            Ray3f ray;
+            Color3f power = light -> samplePhoton(ray, sampler -> next2D(), sampler -> next2D());
+            for(auto& cur : tmp[i]) {
+                m_photonMap -> push_back(Photon(
+                    cur.first.first,
+                    cur.first.second,
+                    (cur.second * power) / (1.0f * emitted[i])  // cur.second: throughput                        
+                ));
+            }
+        }
 
 		/* Build the photon map */
         m_photonMap->build();
@@ -87,7 +168,68 @@ public:
 
 		// put your code for path tracing with photon gathering here
 
-		return Color3f{};
+        Color3f L(0.0f);
+        Ray3f ray(_ray);
+        Color3f throughput(1.0f);
+        while(true) {
+            Intersection its;
+            if(!scene->rayIntersect(ray, its))
+                break;
+            if(!its.mesh)
+                break;
+
+            if(its.mesh -> isEmitter()) {
+                EmitterQueryRecord lRec (ray.o, its.p, its.shFrame.n);
+                if(its.mesh -> getEmitter() -> pdf(lRec) > 0.0)
+                    L += its.mesh -> getEmitter() -> eval(lRec) * throughput;
+            }
+
+            BSDF *bsdf = (BSDF*)(its.mesh -> getBSDF());
+            if(bsdf && bsdf -> isDiffuse()) {
+                // calculate photons
+                std::vector<uint32_t> results; 
+                m_photonMap->search(its.p, m_photonRadius, results);
+
+                Color3f curResult(0.0f);
+                for(auto i : results) {
+                    const Photon &photon = (*m_photonMap)[i];
+                    Vector3f wo = photon.getDirection();
+                    Vector3f wi = (ray.o - its.p).normalized();
+                    BSDFQueryRecord bRec(its.toLocal(wi), its.toLocal(wo), ESolidAngle);
+                    bRec.uv = its.uv;
+                    bRec.p = its.p;
+                    if(bsdf -> pdf(bRec) != 0.0f) {
+                        Color3f bsdfResult = ((bsdf -> eval(bRec)) / (bsdf -> pdf(bRec))) * Frame::cosTheta(bRec.wo);
+                        curResult += (bsdfResult * photon.getPower());                    
+                    }
+                }
+                curResult = curResult / ((M_PI * M_PI * m_photonRadius * m_photonRadius));
+                L += throughput * curResult;
+                break;
+            }
+
+            if(bsdf) {
+                Vector3f w = (ray.o - its.p).normalized();
+                Vector3f w_local = its.toLocal(w);
+                BSDFQueryRecord bRec(w_local);  
+                bRec.uv = its.uv;
+                bRec.p = its.p;
+                Point2f bsdfSample = sampler -> next2D();
+                Color3f bsdfResult = bsdf -> sample(bRec, bsdfSample);
+                Vector3f w_sampled = its.toWorld(bRec.wo).normalized(); // sampled direction 
+                Ray3f ray_w_sampled(its.p, w_sampled);
+                float successProb = std::min(throughput.maxCoeff(), 0.99f);                                    
+                if((sampler -> next1D()) <= successProb) {
+                    throughput /= successProb;
+                    throughput *= bsdfResult;                    
+                    ray = ray_w_sampled;
+                } else 
+                    break;
+            } else {
+                break;
+            }
+        }
+		return L;
     }
 
     virtual std::string toString() const override {
@@ -105,6 +247,7 @@ private:
      * Important: m_photonCount is the total number of photons deposited in the photon map,
      * NOT the number of emitted photons. You will need to keep track of those yourself.
      */ 
+    // int m_emittedPhoton;
     int m_photonCount;
     float m_photonRadius;
     std::unique_ptr<PhotonMap> m_photonMap;

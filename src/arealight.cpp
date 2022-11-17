@@ -78,7 +78,21 @@ public:
 
 
     virtual Color3f samplePhoton(Ray3f &ray, const Point2f &sample1, const Point2f &sample2) const override {
-        throw NoriException("To implement...");
+        if(!m_shape)
+            throw NoriException("There is no shape attached to this Area light!");
+
+        ShapeQueryRecord sRec;
+        m_shape -> sampleSurface(sRec, sample1);
+
+        ray.o = sRec.p;
+        Frame tmp = Frame(sRec.n); 
+        Vector3f cosineWeighted = Warp::squareToCosineHemisphere(sample2);
+        ray.d = tmp.toWorld(cosineWeighted).normalized(); 
+        ray.mint = Epsilon;
+        ray.maxt = std::numeric_limits<Point3f::Scalar>::infinity();
+        ray.update();
+        
+        return m_radiance * M_PI / sRec.pdf; // L_e * PI * A     
     }
 
 
