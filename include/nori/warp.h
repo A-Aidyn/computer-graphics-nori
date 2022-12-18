@@ -78,6 +78,8 @@ public:
     /// Probability density of \ref squareToBeckmann()
     static float squareToBeckmannPdf(const Vector3f &m, float alpha);
 
+    /// Warp a uniformly distributed square sample to a Trowbridge Reitz distribution * cosine for the given 'alpha' parameter
+    static Vector3f squareToTrowbridgeReitz(const Point2f &sample, float alpha);
 
     static Vector3f squareToUniformTriangle(const Point2f &sample);
 

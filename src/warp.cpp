@@ -155,6 +155,17 @@ float Warp::squareToBeckmannPdf(const Vector3f &m, float alpha) {
         return 0.0;
 }
 
+Vector3f Warp::squareToTrowbridgeReitz(const Point2f &sample, float alpha) {
+    float theta = atan(sqrt(alpha * alpha * sample.x() / (1.0f - sample.x())));
+    float phi = 2 * M_PI * sample.y();
+
+    float new_x = sin(theta) * cos(phi);
+    float new_y = sin(theta) * sin(phi);
+    float new_z = cos(theta);
+    
+    return Vector3f(new_x, new_y, new_z);
+}
+
 Vector3f Warp::squareToUniformTriangle(const Point2f &sample) {
     float su1 = sqrtf(sample.x());
     float u = 1.f - su1, v = sample.y() * su1;

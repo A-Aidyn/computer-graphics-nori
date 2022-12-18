@@ -52,12 +52,14 @@ add_executable(nori
   src/chi2test.cpp
   src/common.cpp
   src/consttexture.cpp
+  src/conductor.cpp
   src/checkerboard.cpp
   src/diffuse.cpp
   src/direct.cpp
   src/direct_ems.cpp
   src/direct_mats.cpp
   src/direct_mis.cpp
+  src/distantlight.cpp
   src/gui.cpp
   src/independent.cpp
   src/main.cpp
@@ -82,7 +84,9 @@ add_executable(nori
   src/mirror.cpp
   src/dielectric.cpp
   src/photonmapper.cpp
+  src/plastic.cpp
   src/sphere.cpp
+  src/spotlight.cpp
   src/arealight.cpp
 )
 

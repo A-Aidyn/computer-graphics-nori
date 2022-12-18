@@ -89,7 +89,7 @@ class PathMis : public Integrator {
                     mats_pdf = bsdf -> pdf(bRec);
                     if(bRec.measure != EDiscrete)
                     L += throughput * calculateWeightedValue(ems_value, ems_pdf, mats_pdf);
-                }
+                } 
             }
 
             // ----------------------------

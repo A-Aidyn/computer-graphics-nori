@@ -45,7 +45,7 @@ public:
 
                 Ray3f ray_w_sampled(its.p, w_sampled);
 
-                float successProb = std::min(throughput.maxCoeff(), 0.99f);                                    
+                float successProb = std::min(throughput.maxCoeff(), 0.8f);                                    
                 if((sampler -> next2D()).x() <= successProb) {
                     throughput /= successProb;
                     throughput *= bsdfResult;                    
